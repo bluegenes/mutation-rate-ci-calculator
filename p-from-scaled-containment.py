@@ -24,7 +24,7 @@ usage: p-from-scaled-containment.py [options]
                               k-mers; <list> is a comma-separated list of
                               numbers
   --scale=<probability>       (s=) scaling factor of the hash
-  
+
   --length=<N>                (l=) sequence length (number of NUCLEOTIDES in
                               the sequence)
                               (default is 1000 plus kmer size minus 1)
@@ -36,7 +36,7 @@ usage: p-from-scaled-containment.py [options]
   --confidence=<probability>  (C=) size of confidence interval
                               (default is 95%)
   --seed=<string>             random seed for simulations"""
-  
+
     if (s == None): exit (message)
     else:           exit ("%s\n%s" % (s,message))
 
@@ -48,7 +48,7 @@ def main():
     global reportProgress,debug
     # parse the command line
     scaledContainmentsObserverved  = []
-    scaleFactor        = 0.1 #default 
+    scaleFactor        = 0.1 #default
     ntSequenceLength   = None
     kmerSequenceLength = None
     kmerSize           = 21
@@ -100,55 +100,56 @@ def main():
     if ("nsanity" in debug):
         hgslicer.doNLowSanityCheck  = True
         hgslicer.doNHighSanityCheck = True
-	
+
     # compute the confidence interval(s)
     L = ntSequenceLength - (kmerSize-1)
     k = kmerSize
     alpha = 1 - confidence
     s = scaleFactor
-    
+
     header = ["L","k","conf","Cks","CLow","CHigh","pLow","pHigh"]
     print("\t".join(header))
     z_alpha = probit(1-alpha/2)
+    mpf = lambda v:float(v)
     f1 = lambda Nm: 1-1.0*Nm/L + z_alpha*sqrt( 1.0*Nm*(L-Nm)*(1-s)/(s * L**3) ) - Cks
     f1_mpf = lambda Nm: mpf(f1(Nm))
     f2 = lambda Nm: 1-1.0*Nm/L - z_alpha*sqrt( 1.0*Nm*(L-Nm)*(1-s)/(s * L**3) ) - Cks
     f2_mpf = lambda Nm: mpf(f2(Nm))
-    
+
     for (CksIx,Cks) in enumerate(scaledContainmentsObserverved):
         Nm_guess = L*(1-Cks)
         sol1_mpf = newton(f1_mpf, Nm_guess)
         sol2_mpf = newton(f2_mpf, Nm_guess)
-        
+
         #print( sol1, f1(sol1) )
         #print( float(sol1_new), float(f1_new(float(sol1_new))) )
         #print( float(sol1_new), float(f1(sol1_new)) )
         #print( sol1_mpf, f1_mpf(sol1_mpf) )
         #print( sol2, f2(sol2) )
         #print( sol2_mpf, f2_mpf(sol2_mpf) )
-        
+
         sol1 = sol1_mpf
         sol2 = sol2_mpf
-        
+
         Clow = 1-1.0*sol1/L
         Chigh = 1-1.0*sol2/L
-        
+
         f3 = lambda pest: mpf((1-pest)**k + z_alpha*sqrt( thm5.var_n_mutated(L,k,pest) ) / L - Clow)
         f4 = lambda pest: mpf((1-pest)**k - z_alpha*sqrt( thm5.var_n_mutated(L,k,pest) ) / L - Chigh)
-        
+
         phigh = newton(f3, Clow)
         plow = newton(f4, Chigh)
-        
+
         #phigh = brentq(f3, 0.0001, 0.95)
         #plow = brentq(f4, 0.0001, 0.95)
-        
+
         #print(phigh, f3(phigh))
         #print(plow, f4(plow))
-        
+
         values = [L,k,confidence,Cks,Clow,Chigh,plow,phigh]
         print("\t".join(str(v)[:7] for v in values))
-        
-            
+
+
 # parse_probability--
 #	Parse a string as a probability
 
